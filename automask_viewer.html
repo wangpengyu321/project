@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAM自动掩码查看器</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            margin: 20px auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .left-panel, .right-panel {
+            flex: 1;
+            padding: 20px;
+            height: 600px;
+            overflow: auto;
+        }
+        .left-panel {
+            border-right: 1px solid #eee;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .file-input {
+            margin-bottom: 10px;
+        }
+        .image-container {
+            position: relative;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .image-container img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .result-container {
+            position: relative;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .result-container img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            border-radius: 4px;
+        }
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #e8f5e9;
+            font-weight: bold;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .feature-list {
+            margin-top: 20px;
+            padding: 0;
+            list-style: none;
+        }
+        .feature-item {
+            margin-bottom: 8px;
+            padding: 10px;
+            background-color: #f1f8fe;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h1>原始图像</h1>
+            <div class="controls">
+                <div class="file-input">
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+                <div class="file-input">
+                    <input type="text" id="imageNameInput" placeholder="输入图像名称（可选）">
+                </div>
+                <button id="generateBtn">生成自动掩码</button>
+            </div>
+            <div class="status" id="statusMsg"></div>
+            <div class="image-container">
+                <img id="originalImage" src="" alt="请选择图像" style="display:none;">
+            </div>
+        </div>
+        <div class="right-panel">
+            <h1>分割结果</h1>
+            <div class="result-container">
+                <img id="resultImage" src="" alt="分割结果将在这里显示" style="display:none;">
+                <div class="loading-overlay" id="loadingOverlay" style="display:none;">
+                    <div class="spinner"></div>
+                    <div id="loadingText">正在生成自动掩码...</div>
+                    <div id="loadingTime" style="margin-top: 10px; font-size: 14px;"></div>
+                </div>
+            </div>
+            <h3>识别到的对象</h3>
+            <ul class="feature-list" id="featureList"></ul>
+        </div>
+    </div>
+
+    <script>
+        let startTime;
+        let processingTimer;
+        let minimumProcessingTime = 5000; // 最小处理时间 5 秒
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageInput = document.getElementById('imageInput');
+            const imageNameInput = document.getElementById('imageNameInput');
+            const generateBtn = document.getElementById('generateBtn');
+            const originalImage = document.getElementById('originalImage');
+            const resultImage = document.getElementById('resultImage');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const statusMsg = document.getElementById('statusMsg');
+            const featureList = document.getElementById('featureList');
+            const loadingText = document.getElementById('loadingText');
+            const loadingTime = document.getElementById('loadingTime');
+            
+            // 监听文件选择
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        originalImage.src = event.target.result;
+                        originalImage.style.display = 'block';
+                        resultImage.style.display = 'none';
+                        featureList.innerHTML = '';
+                        statusMsg.textContent = '图像已加载，点击"生成自动掩码"开始分割';
+                        statusMsg.className = 'status';
+                    };
+                    reader.readAsDataURL(file);
+                    
+                    // 自动填充图像名称（不含扩展名）
+                    if (!imageNameInput.value) {
+                        const fileName = file.name.split('.')[0];
+                        imageNameInput.value = fileName;
+                    }
+                }
+            });
+            
+            // 生成掩码按钮点击事件
+            generateBtn.addEventListener('click', function() {
+                if (!originalImage.src || originalImage.src === window.location.href) {
+                    statusMsg.textContent = '请先选择一张图像';
+                    statusMsg.className = 'status error';
+                    return;
+                }
+                
+                // 显示加载状态
+                resultImage.style.display = 'none';
+                loadingOverlay.style.display = 'flex';
+                loadingText.textContent = '正在生成自动掩码...';
+                featureList.innerHTML = '';
+                statusMsg.textContent = '正在处理图像...';
+                statusMsg.className = 'status';
+                generateBtn.disabled = true;
+                
+                // 记录开始时间并启动计时器
+                startTime = new Date();
+                updateProcessingTime();
+                processingTimer = setInterval(updateProcessingTime, 1000);
+                
+                // 准备API请求数据
+                const requestData = {
+                    b64img: originalImage.src,
+                    image_name: imageNameInput.value || null
+                };
+                
+                // 发送请求到API
+                fetch('http://127.0.0.1:9000/sam/automask/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`API响应错误: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 检查是否需要等待最小处理时间
+                    const processingTime = new Date() - startTime;
+                    const remainingWait = Math.max(0, minimumProcessingTime - processingTime);
+                    
+                    setTimeout(() => {
+                        clearInterval(processingTimer);
+                        handleApiResponse(data);
+                    }, remainingWait);
+                })
+                .catch(error => {
+                    clearInterval(processingTimer);
+                    console.error('Error:', error);
+                    loadingOverlay.style.display = 'none';
+                    statusMsg.textContent = `错误: ${error.message}`;
+                    statusMsg.className = 'status error';
+                    generateBtn.disabled = false;
+                });
+            });
+            
+            // 更新处理时间的函数
+            function updateProcessingTime() {
+                const elapsedTime = Math.floor((new Date() - startTime) / 1000);
+                loadingTime.textContent = `已处理 ${elapsedTime} 秒`;
+            }
+            
+            // 处理API响应
+            function handleApiResponse(data) {
+                generateBtn.disabled = false;
+                
+                // 检查是否处于处理状态
+                if (data._status === 'processing') {
+                    statusMsg.textContent = '服务器正在处理图像，可能需要较长时间...';
+                    statusMsg.className = 'status';
+                    // 保持加载动画显示
+                    return;
+                }
+                
+                // 处理错误
+                if (data._status === 'error') {
+                    loadingOverlay.style.display = 'none';
+                    statusMsg.textContent = `错误: ${data._message}`;
+                    statusMsg.className = 'status error';
+                    return;
+                }
+                
+                // 加载结果图像
+                if (data._result_image) {
+                    resultImage.src = data._result_image;
+                    resultImage.style.display = 'block';
+                } else if (data._original_image) {
+                    // 如果没有结果图像但有原始图像，使用原始图像
+                    resultImage.src = data._original_image;
+                    resultImage.style.display = 'block';
+                }
+                
+                // 隐藏加载动画
+                loadingOverlay.style.display = 'none';
+                
+                // 显示特征
+                if (data.features && data.features.length > 0) {
+                    featureList.innerHTML = '';
+                    data.features.forEach((feature, index) => {
+                        const quality = feature.properties.quality ? 
+                            (feature.properties.quality * 100).toFixed(1) + '%' : 'N/A';
+                        
+                        const li = document.createElement('li');
+                        li.className = 'feature-item';
+                        li.innerHTML = `<strong>对象 ${index + 1}:</strong> 质量评分 ${quality}`;
+                        featureList.appendChild(li);
+                    });
+                    
+                    statusMsg.textContent = `成功识别 ${data.features.length} 个对象`;
+                    statusMsg.className = 'status';
+                } else {
+                    statusMsg.textContent = '未检测到任何对象';
+                    statusMsg.className = 'status';
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

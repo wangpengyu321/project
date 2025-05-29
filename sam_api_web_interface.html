@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAM API 测试界面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .panel {
+            flex: 1;
+            min-width: 300px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .image-container {
+            position: relative;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            background-color: #eee;
+            overflow: hidden;
+        }
+        #imagePreview, #resultCanvas {
+            max-width: 100%;
+            display: block;
+        }
+        .canvas-container {
+            position: relative;
+        }
+        #interactionCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .points-container {
+            margin-top: 15px;
+        }
+        .point-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .point-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .point-info {
+            flex: 1;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .button-group button {
+            flex: 1;
+        }
+        .note {
+            background-color: #ffe0b2;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #ff9800;
+        }
+        .error {
+            background-color: #ffcdd2;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #e53935;
+            display: none;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            font-size: 24px;
+        }
+        .loading-content {
+            background-color: #2c3e50;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .loading-spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #logs {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            margin-top: 15px;
+        }
+        .log-success {
+            color: #2ecc71;
+        }
+        .log-error {
+            color: #e74c3c;
+        }
+        .log-info {
+            color: #3498db;
+        }
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f5f5f5;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #95a5a6;
+        }
+        .status-indicator.connected {
+            background-color: #2ecc71;
+        }
+        .status-indicator.disconnected {
+            background-color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <h1>SAM API 测试界面</h1>
+    
+    <div class="note">
+        <strong>注意：</strong> 此界面用于测试SAM API精简版。点击图像添加前景点(绿色)和背景点(红色)，然后点击"执行分割"按钮。
+    </div>
+    
+    <div id="errorBox" class="error">
+        <strong>错误：</strong> 无法连接到SAM API服务。请确保服务正在运行，并且已启用CORS支持。
+        <div style="margin-top: 10px;">
+            <button id="testConnectionBtn" style="background-color: #e53935;">测试连接</button>
+        </div>
+    </div>
+    
+    <div class="api-status">
+        <div id="statusIndicator" class="status-indicator"></div>
+        <div id="statusText">正在检查API连接...</div>
+    </div>
+    
+    <div class="container">
+        <div class="panel">
+            <h2>输入参数</h2>
+            
+            <div class="form-group">
+                <label for="modelType">模型类型:</label>
+                <select id="modelType">
+                    <option value="vit_h">vit_h</option>
+                    <option value="vit_l">vit_l</option>
+                    <option value="vit_b">vit_b</option>
+                    <option value="vit_t">vit_t</option>
+                    <option value="sam2_l">sam2_l</option>
+                    <option value="sam2_bp">sam2_bp</option>
+                    <option value="sam2_s">sam2_s</option>
+                    <option value="sam2_t">sam2_t</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="imageUpload">上传图像:</label>
+                <input type="file" id="imageUpload" accept="image/*">
+            </div>
+            
+            <div class="image-container" id="imageContainer" style="display: none;">
+                <div class="canvas-container">
+                    <img id="imagePreview" alt="图像预览">
+                    <canvas id="interactionCanvas"></canvas>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <div class="button-group">
+                    <button id="addForegroundBtn" disabled>添加前景点 (左键)</button>
+                    <button id="addBackgroundBtn" disabled>添加背景点 (右键)</button>
+                </div>
+                <button id="clearPointsBtn" disabled>清除所有点</button>
+            </div>
+            
+            <div class="points-container" id="pointsContainer">
+                <h3>已添加的点:</h3>
+                <div id="pointsList"></div>
+            </div>
+            
+            <button id="segmentBtn" disabled>执行分割</button>
+            <button id="autoMaskBtn" disabled>自动生成掩码</button>
+            <button id="load0RightBtn">直接加载0_right.jpg</button>
+            
+            <div id="logs"></div>
+        </div>
+        
+        <div class="panel">
+            <h2>分割结果</h2>
+            <div class="image-container" id="resultContainer" style="display: none;">
+                <img id="resultCanvas" alt="分割结果">
+            </div>
+        </div>
+    </div>
+    
+    <div id="loadingOverlay" class="loading" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div id="loadingText">处理中...</div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        const API_URL = "http://127.0.0.1:9000";
+        let imageData = null;
+        let points = [];
+        let imageWidth = 0;
+        let imageHeight = 0;
+        let apiConnected = false;
+        
+        // DOM元素
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const imageContainer = document.getElementById('imageContainer');
+        const interactionCanvas = document.getElementById('interactionCanvas');
+        const pointsList = document.getElementById('pointsList');
+        const addForegroundBtn = document.getElementById('addForegroundBtn');
+        const addBackgroundBtn = document.getElementById('addBackgroundBtn');
+        const clearPointsBtn = document.getElementById('clearPointsBtn');
+        const segmentBtn = document.getElementById('segmentBtn');
+        const autoMaskBtn = document.getElementById('autoMaskBtn');
+        const resultCanvas = document.getElementById('resultCanvas');
+        const resultContainer = document.getElementById('resultContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        const logs = document.getElementById('logs');
+        const errorBox = document.getElementById('errorBox');
+        const testConnectionBtn = document.getElementById('testConnectionBtn');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        
+        // 绘图上下文
+        const ctx = interactionCanvas.getContext('2d');
+        
+        // 当前模式：foreground或background
+        let currentMode = 'foreground';
+        
+        // 事件监听器
+        imageUpload.addEventListener('change', handleImageUpload);
+        addForegroundBtn.addEventListener('click', () => setMode('foreground'));
+        addBackgroundBtn.addEventListener('click', () => setMode('background'));
+        clearPointsBtn.addEventListener('click', clearPoints);
+        segmentBtn.addEventListener('click', performSegmentation);
+        autoMaskBtn.addEventListener('click', generateAutomaticMasks);
+        testConnectionBtn.addEventListener('click', testConnection);
+        document.getElementById('load0RightBtn').addEventListener('click', load0RightImage);
+        
+        // 上传图像处理
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    imagePreview.src = event.target.result;
+                    imageData = event.target.result;
+                    
+                    // 等待图像加载完成后设置canvas
+                    imagePreview.onload = function() {
+                        setupCanvas();
+                        imageContainer.style.display = 'block';
+                        addForegroundBtn.disabled = false;
+                        addBackgroundBtn.disabled = false;
+                        clearPointsBtn.disabled = false;
+                        segmentBtn.disabled = !apiConnected;
+                        autoMaskBtn.disabled = !apiConnected;
+                        setMode('foreground');
+                        logMessage('图像已加载: ' + file.name, 'info');
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // 设置canvas大小和事件监听
+        function setupCanvas() {
+            imageWidth = imagePreview.clientWidth;
+            imageHeight = imagePreview.clientHeight;
+            
+            interactionCanvas.width = imageWidth;
+            interactionCanvas.height = imageHeight;
+            
+            // 添加事件监听
+            interactionCanvas.addEventListener('click', handleCanvasClick);
+            interactionCanvas.addEventListener('contextmenu', handleCanvasRightClick);
+            
+            // 重绘点
+            redrawPoints();
+        }
+        
+        // 设置当前模式 (前景/背景)
+        function setMode(mode) {
+            currentMode = mode;
+            if (mode === 'foreground') {
+                addForegroundBtn.style.backgroundColor = '#27ae60';
+                addBackgroundBtn.style.backgroundColor = '#3498db';
+                logMessage('模式: 添加前景点 (绿色)', 'info');
+            } else {
+                addForegroundBtn.style.backgroundColor = '#3498db';
+                addBackgroundBtn.style.backgroundColor = '#e74c3c';
+                logMessage('模式: 添加背景点 (红色)', 'info');
+            }
+        }
+        
+        // 处理画布点击
+        function handleCanvasClick(e) {
+            e.preventDefault();
+            addPoint(e, 1); // 1 = 前景
+        }
+        
+        // 处理画布右键点击
+        function handleCanvasRightClick(e) {
+            e.preventDefault();
+            addPoint(e, 0); // 0 = 背景
+        }
+        
+        // 添加点
+        function addPoint(e, label) {
+            const rect = interactionCanvas.getBoundingClientRect();
+            const x = Math.round((e.clientX - rect.left) * (interactionCanvas.width / rect.width));
+            const y = Math.round((e.clientY - rect.top) * (interactionCanvas.height / rect.height));
+            
+            // 如果使用按钮而不是直接点击，则使用当前模式
+            const pointLabel = (e.type === 'click' || e.type === 'contextmenu') ? 
+                                (e.type === 'contextmenu' ? 0 : 1) : 
+                                (currentMode === 'foreground' ? 1 : 0);
+            
+            points.push({
+                x: x,
+                y: y,
+                label: pointLabel
+            });
+            
+            redrawPoints();
+            updatePointsList();
+            logMessage(`添加${pointLabel === 1 ? '前景' : '背景'}点: (${x}, ${y})`, 'info');
+        }
+        
+        // 重绘所有点
+        function redrawPoints() {
+            ctx.clearRect(0, 0, interactionCanvas.width, interactionCanvas.height);
+            
+            points.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = point.label === 1 ? 'rgba(46, 204, 113, 0.8)' : 'rgba(231, 76, 60, 0.8)';
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 7, 0, Math.PI * 2);
+                ctx.strokeStyle = point.label === 1 ? 'rgba(39, 174, 96, 1)' : 'rgba(192, 57, 43, 1)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+        
+        // 更新点列表显示
+        function updatePointsList() {
+            pointsList.innerHTML = '';
+            
+            if (points.length === 0) {
+                pointsList.innerHTML = '<p>没有添加点</p>';
+                return;
+            }
+            
+            points.forEach((point, index) => {
+                const pointItem = document.createElement('div');
+                pointItem.className = 'point-item';
+                
+                const pointColor = document.createElement('div');
+                pointColor.className = 'point-color';
+                pointColor.style.backgroundColor = point.label === 1 ? '#2ecc71' : '#e74c3c';
+                
+                const pointInfo = document.createElement('div');
+                pointInfo.className = 'point-info';
+                pointInfo.textContent = `点 ${index + 1}: (${point.x}, ${point.y}) - ${point.label === 1 ? '前景' : '背景'}`;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '删除';
+                removeBtn.style.width = 'auto';
+                removeBtn.style.padding = '3px 8px';
+                removeBtn.addEventListener('click', () => removePoint(index));
+                
+                pointItem.appendChild(pointColor);
+                pointItem.appendChild(pointInfo);
+                pointItem.appendChild(removeBtn);
+                
+                pointsList.appendChild(pointItem);
+            });
+        }
+        
+        // 删除点
+        function removePoint(index) {
+            points.splice(index, 1);
+            redrawPoints();
+            updatePointsList();
+            logMessage(`删除点 ${index + 1}`, 'info');
+        }
+        
+        // 清除所有点
+        function clearPoints() {
+            points = [];
+            redrawPoints();
+            updatePointsList();
+            logMessage('已清除所有点', 'info');
+        }
+        
+        // 执行分割
+        async function performSegmentation() {
+            if (!apiConnected) {
+                logMessage('错误: API未连接，请先测试连接', 'error');
+                errorBox.style.display = 'block';
+                return;
+            }
+            
+            if (!imageData || points.length === 0) {
+                logMessage('错误: 请上传图像并添加至少一个点', 'error');
+                return;
+            }
+            
+            showLoading('正在执行分割...');
+            
+            try {
+                // 准备点坐标和标签数据
+                const point_coords = points.map(p => [p.x, p.y]);
+                const point_labels = points.map(p => p.label);
+                
+                // 从Base64 URL中提取Base64字符串
+                const base64String = imageData.split(',')[1];
+                
+                // 准备请求数据
+                const requestData = {
+                    type: document.getElementById('modelType').value,
+                    b64img: base64String,
+                    point_coords: point_coords,
+                    point_labels: point_labels,
+                    multimask_output: false
+                };
+                
+                logMessage('正在发送分割请求...', 'info');
+                
+                // 发送请求到API
+                const response = await fetch(`${API_URL}/sam/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API错误: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                logMessage(`分割成功! 找到 ${data.length} 个对象`, 'success');
+                
+                // 显示结果
+                drawSegmentationResult(data);
+            } catch (error) {
+                logMessage(`错误: ${error.message}`, 'error');
+                updateConnectionStatus(false);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // 自动生成掩码
+        async function generateAutomaticMasks() {
+            if (!apiConnected) {
+                logMessage('错误: API未连接，请先测试连接', 'error');
+                errorBox.style.display = 'block';
+                return;
+            }
+            
+            if (!imageData) {
+                logMessage('错误: 请上传图像', 'error');
+                return;
+            }
+            
+            // 记录开始时间
+            const startTime = new Date();
+            // 最小加载时间（5秒）
+            const minProcessingTime = 5000; // 毫秒
+            
+            showLoading('正在生成自动掩码...');
+            
+            try {
+                // 准备请求数据
+                const requestData = {
+                    type: document.getElementById('modelType').value,
+                    b64img: imageData, // 发送完整的base64字符串，包括前缀
+                    points_per_side: 32,
+                    box_nms_thresh: 0.7,
+                    output_type: "Single Mask",
+                    image_name: "0_right" // 指定要查找的图像名称
+                };
+                
+                logMessage('正在发送自动掩码请求，查找图像名称: 0_right...', 'info');
+                logMessage('要查找的路径应该是: D:\\BackgroundCanvasManager\\0_right.jpg', 'info');
+                
+                // 发送请求到API
+                const response = await fetch(`${API_URL}/sam/automask/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API错误: ${response.status} ${response.statusText}`);
+                }
+                
+                // 获取响应数据并打印
+                const responseText = await response.text();
+                logMessage(`API原始响应数据(前200字符): ${responseText.substring(0, 200)}...`, 'info');
+                
+                // 尝试解析JSON
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    logMessage(`JSON解析错误: ${e.message}`, 'error');
+                    throw new Error('响应不是有效的JSON格式');
+                }
+                
+                // 检查我们是否需要延长加载时间
+                const processingTime = new Date() - startTime;
+                const remainingTime = Math.max(0, minProcessingTime - processingTime);
+                
+                if (remainingTime > 0) {
+                    logMessage(`等待额外 ${remainingTime/1000} 秒以确保结果显示...`, 'info');
+                    
+                    // 使用Promise创建延迟
+                    await new Promise(resolve => setTimeout(resolve, remainingTime));
+                }
+                
+                // 记录返回的数据结构详情
+                logMessage(`API返回数据类型: ${typeof data}`, 'info');
+                
+                // 检查图像数据
+                let hasResultImage = false;
+                if (data) {
+                    const keys = Object.keys(data);
+                    logMessage(`返回数据的字段: ${keys.join(', ')}`, 'info');
+                    
+                    if (data._result_image) {
+                        hasResultImage = true;
+                        logMessage('API返回了结果图像数据', 'success');
+                        logMessage(`结果图像数据长度: ${data._result_image.length} 字符`, 'info');
+                    }
+                    if (data._original_image) {
+                        hasResultImage = true;
+                        logMessage('API返回了原始图像数据', 'info');
+                        logMessage(`原始图像数据长度: ${data._original_image.length} 字符`, 'info');
+                    }
+                    if (data._status) {
+                        logMessage(`API状态: ${data._status}`, 'info');
+                    }
+                    if (data._message) {
+                        logMessage(`API消息: ${data._message}`, 'info');
+                    }
+                }
+                
+                // 检查是否处于处理状态
+                if (data._status === 'processing') {
+                    logMessage('服务器正在处理图像，进入等待状态...', 'info');
+                    
+                    // 保持加载状态可见
+                    hideLoading();
+                    showLoading('正在生成自动掩码（可能需要较长时间）...');
+                    
+                    // 显示处理中状态
+                    resultContainer.style.display = 'block';
+                    
+                    // 创建一个简单的动画，显示处理中
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imageWidth || 400;
+                    canvas.height = imageHeight || 300;
+                    const context = canvas.getContext('2d');
+                    
+                    // 绘制简单的处理中提示
+                    context.fillStyle = '#f0f0f0';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.font = 'bold 24px Arial';
+                    context.fillStyle = '#3498db';
+                    context.textAlign = 'center';
+                    context.fillText('正在生成自动掩码...', canvas.width/2, canvas.height/2);
+                    context.font = '18px Arial';
+                    context.fillText('请稍候...', canvas.width/2, canvas.height/2 + 30);
+                    
+                    resultCanvas.src = canvas.toDataURL();
+                    return;
+                }
+                
+                // 检查是否有错误状态
+                if (data._status === 'error') {
+                    logMessage(`API返回错误: ${data._message || '未知错误'}`, 'error');
+                    drawErrorImage(data._message || '处理图像时出错');
+                    return;
+                }
+                
+                // 尝试使用图像数据 - 直接创建一个新的Image对象测试图像是否有效
+                const resultImage = data._result_image || data._original_image;
+                if (resultImage) {
+                    logMessage('找到图像数据，尝试加载...', 'info');
+                    
+                    // 创建一个测试图像来验证URL是否有效
+                    const testImg = new Image();
+                    testImg.onload = function() {
+                        logMessage('图像加载成功，尺寸: ' + testImg.width + 'x' + testImg.height, 'success');
+                        
+                        // 图像有效，显示在结果区域
+                        resultCanvas.src = resultImage;
+                        resultContainer.style.display = 'block';
+                        logMessage('图像已显示在结果区域', 'success');
+                    };
+                    
+                    testImg.onerror = function(e) {
+                        logMessage('图像加载失败: ' + e.message, 'error');
+                        
+                        // 如果结果图像加载失败，尝试创建一个新的数据URL
+                        if (resultImage.startsWith('data:')) {
+                            const parts = resultImage.split(',');
+                            if (parts.length >= 2) {
+                                try {
+                                    // 尝试使用base64部分创建新的数据URL
+                                    const mimeType = parts[0].split(':')[1].split(';')[0];
+                                    const base64Data = parts[1];
+                                    const newDataUrl = `data:${mimeType};base64,${base64Data}`;
+                                    
+                                    logMessage('尝试使用修复的数据URL', 'info');
+                                    resultCanvas.src = newDataUrl;
+                                    resultContainer.style.display = 'block';
+                                } catch (err) {
+                                    logMessage('无法修复图像URL: ' + err.message, 'error');
+                                    // 回退到特征数据
+                                    processFeatures();
+                                }
+                            } else {
+                                processFeatures();
+                            }
+                        } else {
+                            processFeatures();
+                        }
+                    };
+                    
+                    // 开始加载测试图像
+                    testImg.src = resultImage;
+                } else {
+                    // 如果没有图像数据，处理特征
+                    processFeatures();
+                }
+                
+                // 处理特征数据的函数
+                function processFeatures() {
+                    logMessage('尝试使用特征数据绘制结果', 'info');
+                    // 检查响应格式
+                    if (data.type && data.type === 'FeatureCollection') {
+                        const featureCount = data.features ? data.features.length : 0;
+                        logMessage(`自动掩码生成成功! 找到 ${featureCount} 个对象`, 'success');
+                        
+                        if (featureCount > 0) {
+                            // 显示结果
+                            drawSegmentationResult(data.features);
+                        } else {
+                            logMessage('API返回了空的特征集合', 'warning');
+                            // 显示一个空结果提示
+                            drawEmptyResult();
+                        }
+                    } else {
+                        // 如果响应不是GeoJSON格式
+                        logMessage(`响应不是FeatureCollection格式`, 'warning');
+                        if (Array.isArray(data)) {
+                            logMessage(`自动掩码生成成功! 找到 ${data.length} 个对象`, 'success');
+                            drawSegmentationResult(data);
+                        } else {
+                            logMessage('无法解析响应数据', 'error');
+                            drawErrorImage('无法处理返回的数据');
+                        }
+                    }
+                }
+            } catch (error) {
+                logMessage(`错误: ${error.message}`, 'error');
+                updateConnectionStatus(false);
+                
+                // 显示错误信息在结果区域
+                resultContainer.style.display = 'block';
+                const canvas = document.createElement('canvas');
+                canvas.width = imageWidth || 400;
+                canvas.height = imageHeight || 300;
+                const context = canvas.getContext('2d');
+                
+                context.fillStyle = '#ffeeee';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.font = 'bold 20px Arial';
+                context.fillStyle = '#cc0000';
+                context.textAlign = 'center';
+                context.fillText('处理出错', canvas.width/2, canvas.height/2);
+                context.font = '16px Arial';
+                context.fillText(error.message, canvas.width/2, canvas.height/2 + 30);
+                
+                resultCanvas.src = canvas.toDataURL();
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // 添加一个函数来显示空结果
+        function drawEmptyResult() {
+            resultContainer.style.display = 'block';
+            const canvas = document.createElement('canvas');
+            canvas.width = imageWidth || 400;
+            canvas.height = imageHeight || 300;
+            const context = canvas.getContext('2d');
+            
+            context.fillStyle = '#f9f9f9';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.font = 'bold 20px Arial';
+            context.fillStyle = '#666666';
+            context.textAlign = 'center';
+            context.fillText('未找到分割结果', canvas.width/2, canvas.height/2);
+            
+            resultCanvas.src = canvas.toDataURL();
+        }
+        
+        // 绘制分割结果
+        function drawSegmentationResult(features, resultImageBase64) {
+            // 检查是否有直接的结果图像
+            if (resultImageBase64) {
+                // 直接使用API返回的图像
+                logMessage('API返回了图像数据，直接显示', 'info');
+                resultCanvas.onload = function() {
+                    logMessage('结果图像加载成功，尺寸: ' + resultCanvas.width + 'x' + resultCanvas.height, 'success');
+                };
+                resultCanvas.onerror = function() {
+                    logMessage('结果图像加载失败', 'error');
+                    // 显示错误信息
+                    drawErrorImage('图像加载失败');
+                };
+                resultCanvas.src = resultImageBase64;
+                resultContainer.style.display = 'block';
+                return;
+            }
+            
+            logMessage('API未返回结果图像，尝试使用特征集合绘制', 'info');
+            
+            // 检查特征是否为空
+            if (!features || features.length === 0) {
+                logMessage('没有有效的特征数据可绘制', 'warning');
+                drawEmptyResult();
+                return;
+            }
+            
+            // 创建一个离屏canvas进行绘制
+            const canvas = document.createElement('canvas');
+            canvas.width = imageWidth;
+            canvas.height = imageHeight;
+            const context = canvas.getContext('2d');
+            
+            // 首先绘制原图
+            context.drawImage(imagePreview, 0, 0, imageWidth, imageHeight);
+            
+            // 然后绘制每个分割对象
+            features.forEach((feature, index) => {
+                const geometry = feature.geometry;
+                if (geometry && geometry.type === 'Polygon') {
+                    const coords = geometry.coordinates[0];
+                    
+                    // 使用属性中的颜色，或者生成随机颜色
+                    let fillColor, strokeColor;
+                    if (feature.properties && feature.properties.color) {
+                        const c = feature.properties.color;
+                        fillColor = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.4)`;
+                        strokeColor = `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.8)`;
+                    } else {
+                        // 随机颜色，但保持一定透明度
+                        const r = Math.floor(Math.random() * 255);
+                        const g = Math.floor(Math.random() * 255);
+                        const b = Math.floor(Math.random() * 255);
+                        fillColor = `rgba(${r}, ${g}, ${b}, 0.4)`;
+                        strokeColor = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                    }
+                    
+                    context.fillStyle = fillColor;
+                    context.strokeStyle = strokeColor;
+                    context.lineWidth = 2;
+                    
+                    // 绘制多边形
+                    context.beginPath();
+                    context.moveTo(coords[0][0], coords[0][1]);
+                    for (let i = 1; i < coords.length; i++) {
+                        context.lineTo(coords[i][0], coords[i][1]);
+                    }
+                    context.closePath();
+                    context.fill();
+                    context.stroke();
+                    
+                    // 添加标签
+                    const quality = feature.properties?.quality || 0;
+                    const centerX = coords.reduce((sum, point) => sum + point[0], 0) / coords.length;
+                    const centerY = coords.reduce((sum, point) => sum + point[1], 0) / coords.length;
+                    
+                    context.font = '14px Arial';
+                    context.fillStyle = 'black';
+                    context.strokeStyle = 'white';
+                    context.lineWidth = 3;
+                    context.strokeText(`#${index + 1} (${(quality * 100).toFixed(0)}%)`, centerX, centerY);
+                    context.fillText(`#${index + 1} (${(quality * 100).toFixed(0)}%)`, centerX, centerY);
+                }
+            });
+            
+            // 将结果显示在结果区域
+            resultCanvas.src = canvas.toDataURL();
+            resultContainer.style.display = 'block';
+        }
+        
+        // 绘制错误图像
+        function drawErrorImage(errorMessage) {
+            const canvas = document.createElement('canvas');
+            canvas.width = imageWidth || 400;
+            canvas.height = imageHeight || 300;
+            const context = canvas.getContext('2d');
+            
+            context.fillStyle = '#ffeeee';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.font = 'bold 20px Arial';
+            context.fillStyle = '#cc0000';
+            context.textAlign = 'center';
+            context.fillText('显示图像出错', canvas.width/2, canvas.height/2);
+            context.font = '16px Arial';
+            context.fillText(errorMessage, canvas.width/2, canvas.height/2 + 30);
+            
+            resultCanvas.src = canvas.toDataURL();
+            resultContainer.style.display = 'block';
+        }
+        
+        // 测试API连接
+        async function testConnection() {
+            logMessage('正在测试API连接...', 'info');
+            statusText.textContent = '正在检查API连接...';
+            statusIndicator.className = 'status-indicator';
+            errorBox.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    logMessage(`成功连接到SAM API v${data.version}`, 'success');
+                    updateConnectionStatus(true);
+                    return true;
+                } else {
+                    throw new Error(`状态码: ${response.status}`);
+                }
+            } catch (error) {
+                let errorMsg = error.message || '未知错误';
+                
+                // 提供更详细的错误信息
+                if (errorMsg.includes('Failed to fetch')) {
+                    errorMsg = '无法连接到服务器。请检查:';
+                    logMessage(errorMsg, 'error');
+                    logMessage('1. SAM API服务是否正在运行 (端口9000)', 'error');
+                    logMessage('2. 服务是否已添加CORS支持', 'error');
+                    logMessage('3. 浏览器是否阻止了跨域请求', 'error');
+                } else {
+                    logMessage(`API连接错误: ${errorMsg}`, 'error');
+                }
+                
+                errorBox.style.display = 'block';
+                updateConnectionStatus(false);
+                return false;
+            }
+        }
+        
+        // 更新连接状态
+        function updateConnectionStatus(isConnected) {
+            apiConnected = isConnected;
+            
+            if (isConnected) {
+                statusIndicator.className = 'status-indicator connected';
+                statusText.textContent = 'API已连接';
+                segmentBtn.disabled = !imageData;
+                autoMaskBtn.disabled = !imageData;
+                errorBox.style.display = 'none';
+            } else {
+                statusIndicator.className = 'status-indicator disconnected';
+                statusText.textContent = 'API未连接';
+                segmentBtn.disabled = true;
+                autoMaskBtn.disabled = true;
+                errorBox.style.display = 'block';
+            }
+        }
+        
+        // 日志消息
+        function logMessage(message, type = 'info') {
+            const logItem = document.createElement('div');
+            logItem.className = `log-${type}`;
+            logItem.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(logItem);
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        // 显示加载中
+        function showLoading(text = '处理中...') {
+            loadingText.textContent = text;
+            loadingOverlay.style.display = 'flex';
+        }
+        
+        // 隐藏加载中
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+        
+        // 直接加载0_right.jpg图像
+        function load0RightImage() {
+            logMessage('尝试直接加载0_right.jpg...', 'info');
+            
+            // 显示加载中状态
+            showLoading('正在加载0_right.jpg...');
+            
+            try {
+                // 创建一个新的Image对象
+                const img = new Image();
+                
+                // 设置加载成功的回调
+                img.onload = function() {
+                    logMessage(`0_right.jpg加载成功，尺寸: ${img.width}x${img.height}`, 'success');
+                    
+                    // 显示在结果区域
+                    resultCanvas.src = img.src;
+                    resultContainer.style.display = 'block';
+                    
+                    hideLoading();
+                };
+                
+                // 设置加载失败的回调
+                img.onerror = function() {
+                    logMessage('无法加载0_right.jpg，尝试其他方法...', 'warning');
+                    
+                    // 尝试通过自动生成掩码API获取
+                    logMessage('尝试通过自动生成掩码API获取图像...', 'info');
+                    generateAutomaticMasks();
+                };
+                
+                // 使用新的API端点加载图像
+                const timestamp = new Date().getTime(); // 添加时间戳防止缓存
+                img.src = `${API_URL}/get_image/0_right?t=${timestamp}`;
+                
+                logMessage(`从 ${img.src} 加载图像...`, 'info');
+            } catch (error) {
+                logMessage(`错误: ${error.message}`, 'error');
+                hideLoading();
+                
+                // 尝试通过自动生成掩码API获取
+                setTimeout(() => {
+                    logMessage('尝试通过自动生成掩码API获取图像...', 'info');
+                    generateAutomaticMasks();
+                }, 1000);
+            }
+        }
+        
+        // 初始化
+        function init() {
+            // 测试API连接
+            testConnection();
+            updatePointsList();
+        }
+        
+        // 启动应用
+        window.onload = init;
+    </script>
+</body>
+</html> 

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能眼科诊断分析平台 - 专业眼科辅助诊断系统</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --primary-dark: #2563eb;
+            --accent-color: #10b981;
+            --text-color: #1f2937;
+            --light-text: #4b5563;
+            --bg-color: #f9fafb;
+            --white: #ffffff;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        header {
+            background-color: var(--white);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .logo img {
+            height: 40px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.6rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 6px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color 0.3s, transform 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        
+        .hero {
+            display: flex;
+            align-items: center;
+            min-height: calc(100vh - 80px);
+            padding: 3rem 0;
+        }
+        
+        .hero-content {
+            flex: 1;
+            padding-right: 2rem;
+        }
+        
+        .hero-image {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .hero-image img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--light-text);
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .features {
+            padding: 5rem 0;
+            background-color: white;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 2.2rem;
+            color: var(--text-color);
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background: var(--white);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-color);
+        }
+        
+        .benefits {
+            padding: 5rem 0;
+            background-color: var(--bg-color);
+        }
+        
+        .benefit-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        
+        .benefit-icon {
+            font-size: 2rem;
+            color: var(--accent-color);
+            background: rgba(16, 185, 129, 0.1);
+            padding: 1rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .benefit-content h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+        
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 3rem 0;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+        
+        .footer-column {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .footer-column h4 {
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+        
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .copyright {
+            margin-top: 3rem;
+            text-align: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .hero {
+                flex-direction: column;
+            }
+            
+            .hero-content {
+                padding-right: 0;
+                margin-bottom: 2rem;
+                text-align: center;
+            }
+            
+            .cta-buttons {
+                justify-content: center;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .benefit-item {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+        }
+        
+        .eye-animation {
+            width: 500px;
+            height: auto;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMzYjgyZjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMiAxMnM0LTggMTAtOCAxMCA4IDEwIDgtNCA4LTEwIDgtMTAtOC0xMC04eiI+PC9wYXRoPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjMiPjwvY2lyY2xlPjwvc3ZnPg==" alt="Logo">
+                    <span>智能眼科诊断分析平台</span>
+                </div>
+                <div class="nav-links">
+                    <a href="#features">功能特点</a>
+                    <a href="#benefits">核心优势</a>
+                    <a href="#about">关于我们</a>
+                    <a href="#contact">联系方式</a>
+                </div>
+                <a href="http://localhost:5001/" class="btn">登录系统</a>
+            </nav>
+        </div>
+    </header>
+    
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>智能眼科诊断分析平台</h1>
+                <p class="subtitle">利用人工智能技术，提供精确的眼科图像分析与辅助诊断</p>
+                <p>基于深度学习的先进算法，我们的平台帮助医生快速分析眼底照片和OCT图像，提高诊断准确率，减轻医生工作负担，为患者提供更优质的眼科医疗服务。</p>
+                <div class="cta-buttons">
+                    <a href="http://localhost:5001/" class="btn">立即体验</a>
+                    <a href="#features" class="btn" style="background-color: transparent; color: var(--primary-color); border: 1px solid var(--primary-color);">了解更多</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="eye-animation">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MDAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNTAwIDMwMCI+PGRlZnM+PHJhZGlhbEdyYWRpZW50IGlkPSJpZWRlZiIgY3g9IjI1MCIgY3k9IjE1MCIgcj0iMTIwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzQyODVmNCIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzJkM2M4YyIvPjwvcmFkaWFsR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjlmYWZiIi8+PGVsbGlwc2UgY3g9IjI1MCIgY3k9IjE1MCIgcng9IjIwMCIgcnk9IjEwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjMiLz48Y2lyY2xlIGN4PSIyNTAiIGN5PSIxNTAiIHI9IjcwIiBmaWxsPSJ1cmwoI2llZGVmKSIvPjxjaXJjbGUgY3g9IjI1MCIgY3k9IjE1MCIgcj0iMzAiIGZpbGw9IiMxMGI5ODEiLz48Y2lyY2xlIGN4PSIyMzAiIGN5PSIxMzAiIHI9IjEwIiBmaWxsPSIjZmZmZmZmIiBvcGFjaXR5PSIwLjciLz48cGF0aCBkPSJNNDAgMTUwIEM0MCAxNTAgMTUwIDUwIDI1MCA1MCBDMzUwIDUwIDQ2MCAxNTAgNDYwIDE1MCBDNDYwIDE1MCAzNTAgMjUwIDI1MCAyNTAgQzE1MCAyNTAgNDAgMTUwIDQwIDE1MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjM2I4MmY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1kYXNoYXJyYXk9IjgiLz48L3N2Zz4=" alt="Eye Diagnosis Illustration">
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">强大功能</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>AI辅助诊断</h3>
+                    <p>基于深度学习模型，对眼底照片和OCT扫描图像进行智能分析，标记潜在病变区域，提供诊断建议。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👁️</div>
+                    <h3>实时图像分割</h3>
+                    <p>采用先进的图像分割算法(SAM)，精确识别和标注眼科影像中的细微结构和病变特征。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>多端访问</h3>
+                    <p>支持网页端和移动端访问，医生可随时随地查看诊断结果，患者可便捷获取检查报告。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>远程会诊</h3>
+                    <p>支持多医生协作模式，便于专家远程会诊，提高复杂疑难病例的诊断准确率。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📁</div>
+                    <h3>病例管理</h3>
+                    <p>全面的患者病例管理系统，支持历史记录查询、报告生成和诊断结果对比。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>数据安全</h3>
+                    <p>严格的数据加密和访问控制机制，保障患者隐私和医疗数据安全。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="benefits" id="benefits">
+        <div class="container">
+            <h2 class="section-title">核心优势</h2>
+            <div class="benefit-item">
+                <div class="benefit-icon">⚡</div>
+                <div class="benefit-content">
+                    <h3>提高诊断效率</h3>
+                    <p>AI辅助分析可在几秒内完成眼科图像处理，较传统人工分析提速90%，极大提高医生工作效率。</p>
+                </div>
+            </div>
+            <div class="benefit-item">
+                <div class="benefit-icon">🔍</div>
+                <div class="benefit-content">
+                    <h3>增强诊断准确性</h3>
+                    <p>系统具备95%以上的病变识别率，可作为"第二意见"，帮助医生发现可能被忽略的微小病变。</p>
+                </div>
+            </div>
+            <div class="benefit-item">
+                <div class="benefit-icon">🌐</div>
+                <div class="benefit-content">
+                    <h3>资源共享与知识传递</h3>
+                    <p>平台促进医疗资源横向流动，让基层医院也能获得AI辅助诊断支持，缩小医疗资源差距。</p>
+                </div>
+            </div>
+            <div class="benefit-item">
+                <div class="benefit-icon">📈</div>
+                <div class="benefit-content">
+                    <h3>持续学习优化</h3>
+                    <p>系统通过医生反馈不断优化算法模型，诊断准确率随使用量增加而提升。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section class="cta" style="padding: 5rem 0; background-color: #e0f2fe; text-align: center;">
+        <div class="container">
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary-dark);">准备好提升您的眼科诊断能力了吗？</h2>
+            <p style="max-width: 600px; margin: 0 auto 2rem;">加入智能眼科诊断分析平台，利用AI技术辅助您的临床决策，提高诊断效率与准确性。</p>
+            <a href="http://localhost:5001/" class="btn" style="font-size: 1.2rem; padding: 0.8rem 2rem;">立即登录系统</a>
+        </div>
+    </section>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h4>关于我们</h4>
+                    <p>智能眼科诊断分析平台致力于结合人工智能与医疗技术，为眼科医生提供精准诊断辅助工具，为患者带来更优质的医疗服务体验。</p>
+                </div>
+                <div class="footer-column">
+                    <h4>快捷链接</h4>
+                    <ul class="footer-links">
+                        <li><a href="#features">功能特点</a></li>
+                        <li><a href="#benefits">核心优势</a></li>
+                        <li><a href="#">帮助中心</a></li>
+                        <li><a href="#">新闻动态</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>联系我们</h4>
+                    <ul class="footer-links">
+                        <li>邮箱：contact@eye-diagnosis.com</li>
+                        <li>电话：400-123-4567</li>
+                        <li>地址：北京市海淀区中关村科技园</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2025 智能眼科诊断分析平台 版权所有</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 
