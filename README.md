@@ -61,7 +61,7 @@
 
 ### 1. 克隆仓库
 ```bash
-git clone https://github.com/yourusername/eye-diagnosis-platform.git
+git clone https://github.com/wangpengyu321/project.git
 cd eye-diagnosis-platform
 ```
 
